@@ -5,6 +5,8 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import * as apps from './app.js';
 import {router_user} from './router_user.js';
+import {router_portfolio} from './router_portfolio.js';
+
 dotenv.config();
 
 const chkPort=val=>{
@@ -22,6 +24,7 @@ app.use(bodyParser.json());
 // Use Routers
 app.use (apps.router);
 app.use(router_user);
+app.use(router_portfolio);
 
 // Server Port
 const port =chkPort(process.env.PORT||4200);
