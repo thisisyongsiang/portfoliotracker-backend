@@ -4,7 +4,7 @@ import bodyParser from "body-parser";
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import * as apps from './app.js';
-
+import {router_user} from './router_user.js';
 dotenv.config();
 
 const chkPort=val=>{
@@ -16,22 +16,25 @@ const chkPort=val=>{
   }
 
 const app = express();
-
 app.use(cors());
 app.use(bodyParser.json());
+
+// Use Routers
 app.use (apps.router);
+app.use(router_user);
 
 // Server Port
 const port =chkPort(process.env.PORT||4200);
 
 // Setup MongoDB Atlas Connection
-const mongo_uri = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.3wmjdvj.mongodb.net/?retryWrites=true&w=majority`;
+const mongo_uri = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.3wmjdvj.mongodb.net/${process.env.MONGO_DB}?retryWrites=true&w=majority`;
 mongoose.connect(mongo_uri, {useNewUrlParser: true, useUnifiedTopology: true});
 const conn = mongoose.connection;
 conn.once("open", () => {
   console.log("MongoDB Atlas database connected successfully");
 })
 conn.on('error', console.error.bind(console, 'MongoDB Atlas connection error'));
+
 
 // Server listening port
 app.listen(port, () => {
