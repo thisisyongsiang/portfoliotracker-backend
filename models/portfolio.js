@@ -8,21 +8,30 @@ const portfolioSchema = new Schema({
         require: true,
         unique: true
     },
-    cash: {
-        type: Number
+    portfolio: {
+        type: String,
+        require: true
     },
-    equity: [{
+    buy: [{
+        ticker: String,
         name: String,
-        ticker: {
-            type: String,
-            required: true,
-            unique: true
-        },
-        bought: [{
-            shares: Number,
-            price: Number,
-            added: Date
-        }]
+        price: Number,
+        quantity: Number,
+        value: Number,
+        date: Date,
+        fees: Number,
+        currency: String,
+        fxRate: Number,
+        frequency: String
+    }],
+    sell: [{
+        ticker: String,
+        name: String,
+        price: Number,
+        quantity: Number,
+        value: Number,
+        date: Date,
+        fees: Number
     }]
 });
 
