@@ -39,8 +39,9 @@ try {
 
     const newPortfolio = new Portfolio({
     emailAddress: req.body.emailAddress,
-    cash: req.body.cash,
-    equity: req.body.equity,
+    portfolio: req.body.portfolio,
+    buy: req.body.buy,
+    sell: req.body.sell
     });
 
     await Portfolio.create(newPortfolio);
