@@ -19,6 +19,33 @@ router_portfolio.get("/portfolio/all", async (req, res) => {
     })
 });
 
+router_portfolio.get("/portfolio/equity", async (req, res) => {
+    console.log("Getting all Equity Portfolio details...");
+
+    Portfolio.find({ "portfolio": "equity" }).exec((err, result) => {
+      if (err) {
+        console.log("Error: ", err)
+      }
+      else {
+        res.send(result);
+      }
+    })
+});
+
+router_portfolio.get("/portfolio/equity/select", async (req, res) => {
+    const email = req.query.email;
+    console.log(`Getting individual Equity Portfolio details by email...${email}`);
+
+    Portfolio.find({ "portfolio": "equity", "emailAddress": email }).exec((err, result) => {
+      if (err) {
+        console.log("Error: ", err)
+      }
+      else {
+        res.send(result);
+      }
+    })
+});
+
 router_portfolio.get("/portfolio/select", async (req, res) => {
     const email = req.query.email;
     console.log(`Getting indiviual Portfolio details by email...${email}`);
