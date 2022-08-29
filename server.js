@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import * as apps from './app.js';
 import {router_user} from './router_user.js';
 import {router_portfolio} from './router_portfolio.js';
+import {financeRouter}from './financeAPI/router.js'
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use(bodyParser.json());
 app.use(apps.router);
 app.use(router_user);
 app.use(router_portfolio);
+app.use(financeRouter);
 
 // Server Port
 const port =chkPort(process.env.PORT||4200);
