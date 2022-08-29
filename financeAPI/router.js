@@ -6,7 +6,10 @@ const financeRouter=express.Router();
 financeRouter.get('/financeapi/historical/:ticker',(req,res)=>{
     let startDate = req.query['startdate'];
     let endDate = req.query['enddate'];
-    GetHistoricalQuotes(req.params.ticker.toUpperCase(),startDate,endDate)
+        //interval is in format of '1d','1wk' and '1mo'
+    let interval=req.query['interval'];
+
+    GetHistoricalQuotes(req.params.ticker.toUpperCase(),startDate,endDate,interval)
         .then(val=>{
             res.status(200).send(val);
         })
