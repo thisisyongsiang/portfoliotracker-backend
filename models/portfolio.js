@@ -6,7 +6,6 @@ const portfolioSchema = new Schema({
     emailAddress: {
         type: String,
         require: true,
-        unique: true
     },
     portfolio: {
         type: String,
