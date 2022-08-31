@@ -47,10 +47,12 @@ try {
     let existingUser = await User.find({emailAddress:newUser.emailAddress}).exec();
     if(existingUser.length===0){
       console.log('add');
-      await User.create(newUser);
+      let createdUser = await User.create(newUser);
+      res.status(200).send(createdUser);
     }
-
-    res.send("New User Added!");
+    else{
+      res.status(200).send(existingUser);
+    }
 } catch (err) {
     console.log("Error: ", err);
 }
