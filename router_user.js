@@ -48,10 +48,12 @@ try {
     if(existingUser.length===0){
       console.log('add');
       let createdUser = await User.create(newUser);
-      res.status(200).send(createdUser);
+      res.status(200);
+      res.send(createdUser);
     }
     else{
-      res.status(200).send(existingUser);
+      res.status(200);
+      res.send(existingUser);
     }
 } catch (err) {
     console.log("Error: ", err);
