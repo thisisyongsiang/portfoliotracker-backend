@@ -2,6 +2,8 @@ import yahooFinance from "yahoo-finance2";
 
 export function GetHistoricalQuotes(ticker,startPeriod,endPeriod,interval){
     //interval is in format of '1d','1wk' and '1mo'
+    console.log("start" +startPeriod);
+    console.log("end" +endPeriod);
     let queryOptions={period1:startPeriod};
     if(endPeriod){
          queryOptions.period2=endPeriod;
