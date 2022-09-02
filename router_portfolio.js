@@ -109,6 +109,29 @@ router_portfolio.get("/portfolio/overallValue",async(req,res)=>{
     res.status(500).send('error occurred : '+error);
   }
 })
+
+//Get each portfolio name and total value
+router_portfolio.get("/portfolio/allStats",async(req,res)=>{
+  try {
+    const email = req.query.email;
+    console.log(`Getting value of each portfolio by email...${email}`);
+    let valueList = [];
+    let portfolios = await Portfolio.find({"emailAddress": email});
+    for (let val of portfolios){
+      let pfVal = await getPortfolioValue(val);
+      let object = await { name: val.portfolio,
+                     value: pfVal 
+    } 
+    valueList.push(object) 
+  }
+
+    console.log(valueList)
+    res.status(200).send(valueList);
+  } catch (error) {
+    res.status(500).send('error occurred : '+error);
+  }
+})
+
 //Get value of single portfolio of user
 router_portfolio.get("/portfolio/selectonevalue",async(req,res)=>{
   try {
