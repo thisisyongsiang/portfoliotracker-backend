@@ -48,6 +48,8 @@ router_portfolio.get("/portfolio/equity/select", async (req, res) => {
     })
 });
 
+
+
 router_portfolio.get("/portfolio/select", async (req, res) => {
     const email = req.query.email;
     console.log(`Getting ALL USER's Portfolio details by email...${email}`);
@@ -61,7 +63,22 @@ router_portfolio.get("/portfolio/select", async (req, res) => {
         }   
     })
 });
+router_portfolio.get("/portfolio/select/name", async (req, res) => {
+  const email = req.query.email;
+  console.log(`Getting ALL USER's Portfolio Names only by email...${email}`);
 
+  Portfolio.find({"emailAddress": email}).exec((err, result) => {
+      if (err) {
+          console.log("Error: ", err)
+      }
+      else {
+          let names= result.map(v=>{
+            return v['portfolio'];
+          })
+          res.send(names);
+      }   
+  })
+});
 router_portfolio.get("/portfolio/selectone", async (req, res) => {
   const email = req.query.email;
   const portfolioName = req.query.portfolioName;
@@ -110,23 +127,61 @@ router_portfolio.get("/portfolio/selectonevalue",async(req,res)=>{
 router_portfolio.get('/portfolio/selectonevalue/timeperiod',async(req,res)=>{
   const email=req.query.email;
   const portfolioName=req.query.portfolioName;
-  const startDate=new Date(req.query.startDate);
-  const endDate=new Date(req.query.endDate);
+  let startDate=new Date(req.query.startDate);
+  let endDate=new Date(req.query.endDate);
+
+  let eString=`${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}`
   console.log(`Getting portfolio value over timeperiod of Portfolio:${portfolioName} by email...${email}`);
   let portfolio = await Portfolio.find({"emailAddress": email,"portfolio":portfolioName});
   let historical={};
-  for(let d = startDate;d<=endDate;d.setDate(d.getDate()+1)){
-    let pfAssets=getPortfolioAssetsAtDate(portfolio[0],d);
-    let dString=`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`
-    await Object.entries(pfAssets).forEach(async a=>{
-      if(!historical[a[0]]){
-        let histQuote = await GetHistoricalQuotes(a[0],dString,req.query.endDate);
-        historical[a[0]]=histQuote;
-      };
-    })
-
+  let portfolioHistoricalValue=[];
+  let assetsPrevDayVal={};
+  try {
+    for(let d = startDate;d<endDate;d.setDate(d.getDate()+1)){
+      let pfAssets=getPortfolioAssetsAtDate(portfolio[0],d);
+      let dString=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+      let dailyPfValue=0;
+      // console.log(assetsPrevDayVal);
+      assetsPrevDayVal['date']=d.toDateString();
+      
+      for(let asset of Object.entries(pfAssets)){
+        if (!historical[asset[0]]){
+          let histQuote=await GetHistoricalQuotes(asset[0],dString,eString);
+          historical[asset[0]]=histQuote;
+        }
+        if (historical[asset[0]].length===0)continue;
+        let assetDate=new Date(historical[asset[0]][0].date);
+        if(
+          assetDate.getDate()===d.getDate()&&
+          assetDate.getFullYear()===d.getFullYear()&&
+          assetDate.getMonth()===d.getMonth()
+          ){
+          let dayAsset=historical[asset[0]].shift();
+          dailyPfValue+=dayAsset['adjClose']*asset[1]; 
+          assetsPrevDayVal[asset[0]]={val:dayAsset['adjClose']*asset[1],trading:true};
+        }
+        else{
+          assetsPrevDayVal[asset[0]]?assetsPrevDayVal[asset[0]]['trading']=false:assetsPrevDayVal[asset[0]]={trading:false};
+          dailyPfValue+=assetsPrevDayVal[asset[0]]['val']?assetsPrevDayVal[asset[0]]['val']:0;
+          //considering some markets are active in some days while others are on holiday
+        }
+      }
+      let toAdd = Object.entries(assetsPrevDayVal).reduce((chk,curAsset)=>{
+        return chk||curAsset[1].trading;
+      },false);
+      if(toAdd){
+        portfolioHistoricalValue.push({
+          date:new Date(d),
+          value:dailyPfValue
+        });
+      }
+    }
+    res.status(200).send(portfolioHistoricalValue);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send("error occurred "+error);
   }
-  res.sendStatus(200);
+ 
 })
 
 
