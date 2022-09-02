@@ -7,7 +7,7 @@ export async function getPortfolioValue(portfolio){
     });
     portfolio.sell.forEach(s=>{
         assets[s.ticker]?assets[s.ticker]-=s.quantity:assets[s.ticker]=-s.quantity;
-    });
+    });    
     let value=await Object.entries(assets).reduce(async(assetVal,cur)=>{
         let quote = await GetQuote(cur[0]);
        return await assetVal+ cur[1]*quote['regularMarketPrice'];
