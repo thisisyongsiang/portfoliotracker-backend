@@ -3,7 +3,7 @@ import { GetQuote } from "../financeAPI/controller.js";
 export async function getPortfolioValue(portfolio){
     let assets={};
     portfolio.buy.forEach(b=>{
-        assets[b.ticker]?assets[b.ticker+=b.quantity]:assets[b.ticker]=b.quantity;
+        assets[b.ticker]?assets[b.ticker]+=b.quantity:assets[b.ticker]=b.quantity;
     });
     portfolio.sell.forEach(s=>{
         assets[s.ticker]?assets[s.ticker]-=s.quantity:assets[s.ticker]=-s.quantity;
