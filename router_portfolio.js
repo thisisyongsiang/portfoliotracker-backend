@@ -21,38 +21,52 @@ router_portfolio.get("/portfolio/all", async (req, res) => {
     })
 });
 
-router_portfolio.get("/portfolio/equity", async (req, res) => {
-    console.log("Getting all Equity Portfolio details...");
+// Add New Portfolio for User
+router_portfolio.post("/portfolio/add", async (req, res) => {
+try {
+    console.log("Adding New Portfolio.. req.body: ", req.body);
 
-    Portfolio.find({ "portfolio": "equity" }).exec((err, result) => {
-      if (err) {
-        console.log("Error: ", err)
-      }
-      else {
-        res.send(result);
-      }
-    })
+    const newPortfolio = new Portfolio({
+    emailAddress: req.body.emailAddress,
+    portfolio: req.body.portfolio,
+    buy: req.body.buy,
+    sell: req.body.sell
+    });
+
+    await Portfolio.create(newPortfolio);
+
+    res.send("New Portfolio Added!");
+    }catch (err) {
+        console.log("Error: ", err);
+    }
 });
 
-router_portfolio.get("/portfolio/equity/select", async (req, res) => {
+// Delete Portfolio for User by email and portfolio name
+router_portfolio.delete("/portfolio/del", async(req, res) => {
+  try {
+
     const email = req.query.email;
-    console.log(`Getting individual Equity Portfolio details by email...${email}`);
+    const portfolio_name = req.query.portfolioName;
+    console.log(`Deleting Portfolio ${portfolio_name} for User ${email}`);
 
-    Portfolio.find({ "portfolio": "equity", "emailAddress": email }).exec((err, result) => {
+    Portfolio.deleteOne({ "emailAddress": email, "portfolio": portfolio_name }, function (err, result) {
       if (err) {
-        console.log("Error: ", err)
+        console.log("Error: ", err);
+        res.send(err);
       }
       else {
+        console.log(`Deleted Portfolio ${portfolio_name} for User ${email}`);
         res.send(result);
       }
-    })
+    });
+  } catch (err) {
+    console.log("Error: ", err);
+  }
 });
 
-
-
+// Get Portfolio Object of User by User email
 router_portfolio.get("/portfolio/select", async (req, res) => {
-    const email = req.query.email;
-    console.log(`Getting ALL USER's Portfolio details by email...${email}`);
+    const email = req.query.email;http://localhost:4200/portfolio/add${email}`);
 
     Portfolio.find({"emailAddress": email}).exec((err, result) => {
         if (err) {
@@ -63,6 +77,117 @@ router_portfolio.get("/portfolio/select", async (req, res) => {
         }   
     })
 });
+
+// Get single portfolio by email and portfolio name
+router_portfolio.get("/portfolio/selectone", async (req, res) => {
+  const email = req.query.email;
+  const portfolioName = req.query.portfolioName;
+  console.log(`Getting Portfolio ${portfolioName} for email ${email}`);
+  Portfolio.find({"emailAddress": email,"portfolio":portfolioName}).exec((err, result) => {
+      if (err) {
+          console.log("Error: ", err)
+      }
+      else {
+          res.send(result);
+      }
+  })
+});
+
+// Add transaction to existing portfolio
+router_portfolio.put("/portfolio/transaction/update", async( req, res) => {
+  const email = req.body.emailAddress;
+  const portfolio = req.body.portfolio;
+  const transactionType = req.body.transactionType;
+  const transaction = req.body.transaction;
+
+  console.log(`Adding ${transactionType} transaction to portfolio ${portfolio} for user ${email}`);
+
+  Portfolio.updateOne(
+    { "emailAddress": email, "portfolio": portfolio },
+    { $push: { [transactionType]: transaction }},
+    function(err, result) {
+      if (err) {
+        res.send(err);
+      }
+      else {
+        console.log(`Successfully Added ${transactionType} transaction to portfolio ${portfolio} for user ${email}`);
+        res.send(result);
+      }
+    });
+});
+
+// Delete transaction from existing portfolio
+router_portfolio.put("/portfolio/transaction/del", async(req, res) => {
+  const email = req.body.emailAddress;
+  const portfolio = req.body.portfolio;
+  const transactionType = req.body.transactionType;
+  const transaction = req.body.transaction;
+
+  console.log(`Deleting ${transactionType} transaction from portfolio ${portfolio} for user ${email}`);
+
+  Portfolio.updateOne(
+    { "emailAddress": email, "portfolio": portfolio },
+    { $pull: { [transactionType]: transaction }},
+    function(err, result) {
+      if (err) {
+        res.send(err);
+      }
+      else {
+        console.log(`Successfully Deleted ${transactionType} transaction from portfolio ${portfolio} for user ${email}`);
+        res.send(result);
+      }
+    });
+})
+
+// Get all BUY transactions from user
+router_portfolio.get("/portfolio/transaction/buy", async(req, res) => {
+  const email = req.query.email;
+
+  console.log(`Getting all BUY transactions for user ${email}`);
+
+  Portfolio.find({"emailAddress": email}).exec((err, result) => {
+      if (err) {
+          console.log("Error: ", err)
+      }
+      else {
+        console.log(`Successfully retrieved all BUY transactions for user ${email}`);
+
+        let transactions = [];
+        const func = (item, index, arr) => {
+          const buys = item['buy'];
+          transactions.push(...buys);
+        }
+        result.forEach(func);
+        res.send(transactions);
+      }   
+  })
+});
+
+// Get all SELL transactions from user
+router_portfolio.get("/portfolio/transaction/sell", async(req, res) => {
+  const email = req.query.email;
+
+  console.log(`Getting all SELL transactions for user ${email}`);
+
+  Portfolio.find({"emailAddress": email}).exec((err, result) => {
+      if (err) {
+          console.log("Error: ", err)
+      }
+      else {
+        console.log(`Successfully retrieved all SELL transactions for user ${email}`);
+
+        let transactions = [];
+        const func = (item, index, arr) => {
+          const sells = item['sell'];
+          transactions.push(...sells);
+        }
+        result.forEach(func);
+        res.send(transactions);
+      }
+  })
+});
+
+// Get user's portfolio names
 router_portfolio.get("/portfolio/select/name", async (req, res) => {
   const email = req.query.email;
   console.log(`Getting ALL USER's Portfolio Names only by email...${email}`);
@@ -79,19 +204,7 @@ router_portfolio.get("/portfolio/select/name", async (req, res) => {
       }   
   })
 });
-router_portfolio.get("/portfolio/selectone", async (req, res) => {
-  const email = req.query.email;
-  const portfolioName = req.query.portfolioName;
-  console.log(`Getting Portfolio ${portfolioName} for email ${email}`);
-  Portfolio.find({"emailAddress": email,"portfolio":portfolioName}).exec((err, result) => {
-      if (err) {
-          console.log("Error: ", err)
-      }
-      else {
-          res.send(result);
-      }   
-  })
-});
+
 
 //Get overall value of user
 router_portfolio.get("/portfolio/overallValue",async(req,res)=>{
@@ -119,8 +232,9 @@ router_portfolio.get("/portfolio/allStats",async(req,res)=>{
     let portfolios = await Portfolio.find({"emailAddress": email});
     for (let val of portfolios){
       let pfVal = await getPortfolioValue(val);
-      let object = await { name: val.portfolio,
-                     value: pfVal 
+      let object = await { 
+              name: val.portfolio,
+              value: pfVal 
     } 
     valueList.push(object) 
   }
@@ -204,27 +318,6 @@ router_portfolio.get('/portfolio/selectonevalue/timeperiod',async(req,res)=>{
     console.log(error);
     res.status(500).send("error occurred "+error);
   }
- 
 })
-
-
-router_portfolio.post("/portfolio/add", async (req, res) => {
-try {
-    console.log("Adding New Portfolio.. req.body: ", req.body);
-
-    const newPortfolio = new Portfolio({
-    emailAddress: req.body.emailAddress,
-    portfolio: req.body.portfolio,
-    buy: req.body.buy,
-    sell: req.body.sell
-    });
-
-    await Portfolio.create(newPortfolio);
-
-    res.send("New Portfolio Added!");
-    }catch (err) {
-        console.log("Error: ", err);
-    }
-});
 
 export { router_portfolio };
