@@ -3,8 +3,9 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import mongoose from 'mongoose';
 import Portfolio from './models/portfolio.js';
-import { getPortfolioValue,getPortfolioAssetsAtDate } from './portfolio/controller.js';
-import { GetHistoricalQuotes } from './financeAPI/controller.js';
+import { getPortfolioValue,getPortfolioAssetsAtDate, getPortfolioHistory, getPortfoliosHistory, getAssetInPortfolioValueHistory, getAssetInPortfolioValue } from './portfolio/controller.js';
+import { GetHistoricalQuotes, GetQuote } from './financeAPI/controller.js';
+import { router } from './app.js';
 
 const router_portfolio = express.Router();
 
@@ -187,6 +188,7 @@ router_portfolio.get("/portfolio/transaction/sell", async(req, res) => {
   })
 });
 
+
 // Get user's portfolio names
 router_portfolio.get("/portfolio/select/name", async (req, res) => {
   const email = req.query.email;
@@ -251,73 +253,180 @@ router_portfolio.get("/portfolio/selectonevalue",async(req,res)=>{
   try {
     const email=req.query.email;
     const portfolioName=req.query.portfolioName;
-    console.log(`Getting portfolio value of Portfolio:${portfolioName} by email...${email}`);
+    console.log(`Getting portfolio value List of Portfolio:${portfolioName} by email...${email}`);
     let portfolio = await Portfolio.find({"emailAddress": email,"portfolio":portfolioName});
     let pfVal= await getPortfolioValue(portfolio[0]);
+    console.log(pfVal);
     res.status(200).send({value:pfVal});
   } catch (error) {
     res.status(500).send('error occurred : '+error);
   }
 })
 
-//Get list of portfolioValues over a timeperiod
+//Get List of portfolio Assets
+router_portfolio.get("/portfolio/selectone/assets",async(req,res)=>{
+  try {
+    const email=req.query.email;
+    const portfolioName=req.query.portfolioName;
+    console.log(`Getting asset List of Portfolio:${portfolioName} by email...${email}`);
+    let portfolio = await Portfolio.find({"emailAddress": email,"portfolio":portfolioName});
+    let assetList= await getPortfolioAssetsAtDate(portfolio[0],new Date());
+    let outputList=[];
+    for(let asset in assetList){
+      // assetList[asset]
+      let quote = await GetQuote(asset);
+      outputList.push({
+        symbol:asset,
+        shortName:quote['shortName'],
+        longName:quote['longName'],
+        regularMarketPrice:quote["regularMarketPrice"]
+      });
+    }
+    res.status(200).send(outputList);
+  } catch (error) {
+    res.status(500).send('error occurred : '+error);
+  }
+})
+//Get List of transactions of one asset in one portfolio
+router_portfolio.get("/portfolio/selectone/asset/transactions",async(req,res)=>{
+  try {
+    const email=req.query.email;
+    const portfolioName=req.query.portfolioName;
+    const assetSymbol=req.query.assetSymbol.toUpperCase();
+    console.log(`Getting Transactions List of asset: ${assetSymbol} Portfolio:${portfolioName} by email...${email}`);
+    let portfolio = await Portfolio.find({"emailAddress": email,"portfolio":portfolioName});
+    let buyList=portfolio[0].buy.toObject();
+    let sellList=portfolio[0].sell.toObject();
+    let output={currQty:0,transactions:[]};
+    let currQty=0;
+    while(buyList.length>0 || sellList.length>0){
+      let next=false;
+      if (buyList.length>0){
+        if (buyList[0].ticker!==assetSymbol){
+          buyList.shift();
+          next=true;
+        }
+      }
+      if(sellList.length>0){
+        if (sellList[0].ticker!==assetSymbol){
+          sellList.shift();
+          next=true;
+        }
+      }
+
+      if(next)continue;
+      if (buyList.length>0&& sellList.length===0){
+          let buy = buyList.shift();
+          currQty+=buy.quantity;
+          buy['type']='buy';
+          output.transactions.push(buy);
+          continue;
+      }
+      else if(sellList.length>0&&buyList.length===0){
+        let sell = sellList.shift();
+        currQty-=sell.quantity;
+        sell['type']='sell';
+        output.transactions.push(sell);
+        continue;
+      }
+      else{
+        if(buyList[0].ticker===assetSymbol&&
+          sellList[0].ticker===assetSymbol){
+            if(buyList[0].date<=sellList[0].date){
+              let buy = buyList.shift();
+              currQty+=buy.quantity;
+              buy['type']='buy';
+              output.transactions.push(buy);
+            }
+            else{
+              let sell = sellList.shift();
+              currQty-=sell.quantity;
+              sell['type']='sell';
+              output.transactions.push(sell);
+            }
+            continue;
+          }
+      }
+      
+    }
+
+    output.currQty=currQty;
+    res.status(200).send(output);
+  } catch (error) {
+    res.status(500).send('error occurred : '+error);
+  }
+})
+//Get Value of one asset in one portfolio
+router_portfolio.get("/portfolio/selectone/asset/value",async(req,res)=>{
+  const email=req.query.email;
+  const portfolioName=req.query.portfolioName;
+  const assetSymbol=req.query.assetSymbol.toUpperCase();
+  console.log(`Getting Value of asset: ${assetSymbol} in Portfolio:${portfolioName} by email...${email}`);
+  try {
+    
+  let portfolio = await Portfolio.find({"emailAddress": email,"portfolio":portfolioName});
+  let assetValue=await getAssetInPortfolioValue(portfolio,assetSymbol);
+  res.status(200).send({value:assetValue});
+  } catch (error) {
+    console.error("error occurred "+error);
+    res.status(500).send(error)
+  }
+})
+//Get list of one portfolioValues over a timeperiod
 router_portfolio.get('/portfolio/selectonevalue/timeperiod',async(req,res)=>{
   const email=req.query.email;
   const portfolioName=req.query.portfolioName;
   let startDate=new Date(req.query.startDate);
   let endDate=new Date(req.query.endDate);
 
-  let eString=`${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}`
   console.log(`Getting portfolio value over timeperiod of Portfolio:${portfolioName} by email...${email}`);
   let portfolio = await Portfolio.find({"emailAddress": email,"portfolio":portfolioName});
-  let historical={};
-  let portfolioHistoricalValue=[];
-  let assetsPrevDayVal={};
-  try {
-    for(let d = startDate;d<endDate;d.setDate(d.getDate()+1)){
-      let pfAssets=getPortfolioAssetsAtDate(portfolio[0],d);
-      let dString=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-      let dailyPfValue=0;
-      // console.log(assetsPrevDayVal);
-      assetsPrevDayVal['date']=d.toDateString();
-      
-      for(let asset of Object.entries(pfAssets)){
-        if (!historical[asset[0]]){
-          let histQuote=await GetHistoricalQuotes(asset[0],dString,eString);
-          historical[asset[0]]=histQuote;
-        }
-        if (historical[asset[0]].length===0)continue;
-        let assetDate=new Date(historical[asset[0]][0].date);
-        if(
-          assetDate.getDate()===d.getDate()&&
-          assetDate.getFullYear()===d.getFullYear()&&
-          assetDate.getMonth()===d.getMonth()
-          ){
-          let dayAsset=historical[asset[0]].shift();
-          dailyPfValue+=dayAsset['adjClose']*asset[1]; 
-          assetsPrevDayVal[asset[0]]={val:dayAsset['adjClose']*asset[1],trading:true};
-        }
-        else{
-          assetsPrevDayVal[asset[0]]?assetsPrevDayVal[asset[0]]['trading']=false:assetsPrevDayVal[asset[0]]={trading:false};
-          dailyPfValue+=assetsPrevDayVal[asset[0]]['val']?assetsPrevDayVal[asset[0]]['val']:0;
-          //considering some markets are active in some days while others are on holiday
-        }
-      }
-      let toAdd = Object.entries(assetsPrevDayVal).reduce((chk,curAsset)=>{
-        return chk||curAsset[1].trading;
-      },false);
-      if(toAdd){
-        portfolioHistoricalValue.push({
-          date:new Date(d),
-          value:dailyPfValue
-        });
-      }
+  getPortfolioHistory(portfolio,startDate,endDate).then(
+    portfolioHistoricalValue=>{
+      res.status(200).send(portfolioHistoricalValue);
     }
-    res.status(200).send(portfolioHistoricalValue);
-  } catch (error) {
+  ).catch (error=>{
     console.log(error);
     res.status(500).send("error occurred "+error);
-  }
+  }) 
+})
+
+//Get list of one user asset value over a timeperiod
+router_portfolio.get('/portfolio/selectoneasset/timeperiod',async(req,res)=>{
+  const email=req.query.email;
+  const portfolioName=req.query.portfolioName;
+  const assetSymbol=req.query.assetSymbol.toUpperCase();
+  let startDate=new Date(req.query.startDate);
+  let endDate=new Date(req.query.endDate);
+  console.log(`Getting asset ${assetSymbol} value over timeperiod of Portfolio:${portfolioName} by email...${email}`);
+  let portfolio = await Portfolio.find({"emailAddress": email,"portfolio":portfolioName});
+  getAssetInPortfolioValueHistory(portfolio,assetSymbol,startDate,endDate).then(
+    assetHistoricalValue=>{
+      res.status(200).send(assetHistoricalValue);
+    }
+  ).catch (error=>{
+    console.log(error);
+    res.status(500).send("error occurred "+error);
+  }) 
+})
+
+//Get list of overall portfolio Values over a timeperiod
+router_portfolio.get('/portfolio/overallValue/timeperiod',async(req,res)=>{
+  const email=req.query.email;
+  let startDate=new Date(req.query.startDate);
+  let endDate=new Date(req.query.endDate);
+
+  console.log(`Getting overall portfolio value over timeperiod  by email...${email}`);
+  let portfolio = await Portfolio.find({"emailAddress": email});
+  getPortfoliosHistory(portfolio,startDate,endDate).then(
+    portfolioHistoricalValue=>{
+      res.status(200).send(portfolioHistoricalValue);
+    }
+  ).catch (error=>{
+    console.log(error);
+    res.status(500).send("error occurred "+error);
+  }) 
+  
 })
 
 export { router_portfolio };
