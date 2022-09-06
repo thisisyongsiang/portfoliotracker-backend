@@ -30,7 +30,18 @@ const portfolioSchema = new Schema({
         quantity: Number,
         value: Number,
         date: Date,
-        fees: Number
+        fees: Number,
+        currency: String,
+        fxRate: Number,
+        frequency: String
+    }],
+    cash: [{
+        ticker: String,
+        name: String,
+        type: String,
+        value: Number,
+        date: Date,
+        currency: String
     }]
 });
 
