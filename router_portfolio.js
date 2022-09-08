@@ -237,6 +237,7 @@ router_portfolio.get("/portfolio/overallValue", async (req, res) => {
     }, 0);
     res.status(200).send({ value: overallValue });
   } catch (error) {
+    console.error("error occurred at portfolio/overallValue " + error)
     res.status(500).send("error occurred : " + error);
   }
 });
@@ -260,6 +261,7 @@ router_portfolio.get("/portfolio/allStats", async (req, res) => {
     console.log(valueList);
     res.status(200).send(valueList);
   } catch (error) {
+    console.error("error occurred at portfolio/allStats " + error)
     res.status(500).send("error occurred : " + error);
   }
 });
@@ -276,10 +278,12 @@ router_portfolio.get("/portfolio/selectonevalue", async (req, res) => {
       emailAddress: email,
       portfolio: portfolioName,
     });
+
     let pfVal = await getPortfolioValue(portfolio[0]);
     console.log(pfVal);
     res.status(200).send({ value: pfVal });
   } catch (error) {
+    console.error("error occurred at portfolio/selectonevalue " + error);
     res.status(500).send("error occurred : " + error);
   }
 });
@@ -310,6 +314,7 @@ router_portfolio.get("/portfolio/selectone/assets", async (req, res) => {
     }
     res.status(200).send(outputList);
   } catch (error) {
+    console.error("error occurred at selectone/assets " + error)
     res.status(500).send("error occurred : " + error);
   }
 });
@@ -384,6 +389,7 @@ router_portfolio.get(
       output.currQty = currQty;
       res.status(200).send(output);
     } catch (error) {
+      console.error("error occurred at selectone/asset/transactions "+ error)
       res.status(500).send("error occurred : " + error);
     }
   }
@@ -403,7 +409,6 @@ router_portfolio.get(
         portfolio: portfolioName,
       });
       let assetList = await getPortfolioAssetsAtDate(portfolio[0], new Date());
-      console.log(assetList);
       let outputList = [];
       for (let asset in assetList) {
         let quote = await GetQuote(asset);
@@ -473,7 +478,8 @@ router_portfolio.get(
       }
       res.status(200).send(outputList);
     } catch (error) {
-      res.status(500).send("error occurred : " + error);
+      console.error("selectone/allassettablestats: " + error);
+      res.status(500).send("error occurred in  get table stats: " + error);
     }
   }
 );
@@ -494,7 +500,7 @@ router_portfolio.get("/portfolio/selectone/asset/value", async (req, res) => {
     let assetValue = await getAssetInPortfolioValue(portfolio, assetSymbol);
     res.status(200).send({ value: assetValue });
   } catch (error) {
-    console.error("error occurred " + error);
+    console.error("error occurred at selectone/asset/value" + error);
     res.status(500).send(error);
   }
 });
@@ -520,8 +526,8 @@ router_portfolio.get(
         res.status(200).send(portfolioHistoricalValue);
       })
       .catch((error) => {
-        console.log(error);
-        res.status(500).send("error occurred " + error);
+        console.error("error occurred at get portfoliovalue over timeperiod " + error);
+        res.status(500).send("error occurred at get portfoliovalue over timeperiod " + error);
       });
   }
 );
@@ -554,7 +560,7 @@ router_portfolio.get(
         res.status(200).send(assetHistoricalValue);
       })
       .catch((error) => {
-        console.log(error);
+        console.log("error occurred at selectoneasset/timeperiod " + error);
         res.status(500).send("error occurred " + error);
       });
   }
@@ -576,7 +582,7 @@ router_portfolio.get("/portfolio/overallValue/timeperiod", async (req, res) => {
       res.status(200).send(portfolioHistoricalValue);
     })
     .catch((error) => {
-      console.log(error);
+      console.error("error occurred at portfolio/overallValue/timeperiod " + error);
       res.status(500).send("error occurred " + error);
     });
 });

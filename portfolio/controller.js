@@ -40,7 +40,7 @@ export function getPortfolioAssetsAtDate(portfolio, date) {
   portfolio.buy.forEach((b) => {
     if (b.date > date) return;
     assets[b.ticker]
-      ? assets[(b.ticker += b.quantity)]
+      ? assets[b.ticker] += b.quantity
       : (assets[b.ticker] = b.quantity);
   });
 
