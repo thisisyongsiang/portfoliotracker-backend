@@ -307,6 +307,7 @@ router_portfolio.get("/portfolio/selectone/assets", async (req, res) => {
       let quote = await GetQuote(asset);
       outputList.push({
         symbol: asset,
+        quantity:assetList[asset],
         shortName: quote["shortName"],
         longName: quote["longName"],
         regularMarketPrice: quote["regularMarketPrice"],
