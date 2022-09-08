@@ -40,11 +40,12 @@ router_portfolio.post("/portfolio/add", async (req, res) => {
       sell: req.body.sell,
     });
 
-    await Portfolio.create(newPortfolio);
+    let pf = await Portfolio.create(newPortfolio);
 
-    res.send("New Portfolio Added!");
+    res.status(200).send(pf);
   } catch (err) {
-    console.log("Error: ", err);
+    console.error("Error: ", err);
+    res.status(500).send("error occurred " + err);
   }
 });
 
@@ -60,7 +61,7 @@ router_portfolio.delete("/portfolio/del", async (req, res) => {
       function (err, result) {
         if (err) {
           console.log("Error: ", err);
-          res.send(err);
+          res.status(500).send(err);
         } else {
           console.log(`Deleted Portfolio ${portfolio_name} for User ${email}`);
           res.send(result);
@@ -69,15 +70,15 @@ router_portfolio.delete("/portfolio/del", async (req, res) => {
     );
   } catch (err) {
     console.log("Error: ", err);
+    res.status(500).send(err);
   }
 });
 
 // Get Portfolio Object of User by User email
 router_portfolio.get("/portfolio/select", async (req, res) => {
   const email = req.query.email;
-  //localhost:4200/portfolio/add${email}`);
 
-  http: Portfolio.find({ emailAddress: email }).exec((err, result) => {
+  Portfolio.find({ emailAddress: email }).exec((err, result) => {
     if (err) {
       console.log("Error: ", err);
     } else {
@@ -263,31 +264,6 @@ router_portfolio.get("/portfolio/allStats", async (req, res) => {
   }
 });
 
-router_portfolio.get("/portfolio/allStatsWithPortfolio", async (req, res) => {
-  try {
-    const email = req.query.email;
-    console.log(
-      `Getting value and portfolio object for each portfolio, for all portfolios by email...${email}`
-    );
-    let valueList = [];
-    let portfolios = await Portfolio.find({ emailAddress: email });
-    for (let val of portfolios) {
-      let pfVal = await getPortfolioValue(val);
-      let object = await {
-        name: val.portfolio,
-        value: pfVal,
-        portfolio: val,
-      };
-      valueList.push(object);
-    }
-
-    console.log(valueList);
-    res.status(200).send(valueList);
-  } catch (error) {
-    res.status(500).send("error occurred : " + error);
-  }
-});
-
 //Get value of single portfolio of user
 router_portfolio.get("/portfolio/selectonevalue", async (req, res) => {
   try {
@@ -321,7 +297,6 @@ router_portfolio.get("/portfolio/selectone/assets", async (req, res) => {
       portfolio: portfolioName,
     });
     let assetList = await getPortfolioAssetsAtDate(portfolio[0], new Date());
-    console.log(assetList);
     let outputList = [];
     for (let asset in assetList) {
       // assetList[asset]
@@ -431,7 +406,6 @@ router_portfolio.get(
       console.log(assetList);
       let outputList = [];
       for (let asset in assetList) {
-        
         let quote = await GetQuote(asset);
         let assetValue = await getAssetInPortfolioValue(portfolio, asset);
 
@@ -468,10 +442,7 @@ router_portfolio.get(
             output.transactions.push(sell);
             continue;
           } else {
-            if (
-              buyList[0].ticker === asset &&
-              sellList[0].ticker === asset
-            ) {
+            if (buyList[0].ticker === asset && sellList[0].ticker === asset) {
               if (buyList[0].date <= sellList[0].date) {
                 let buy = buyList.shift();
                 currQty += buy.quantity;
@@ -497,7 +468,7 @@ router_portfolio.get(
           longName: quote["longName"],
           regularMarketPrice: quote["regularMarketPrice"],
           value: assetValue,
-          transactions:output
+          transactions: output,
         });
       }
       res.status(200).send(outputList);
@@ -533,6 +504,7 @@ router_portfolio.get(
   async (req, res) => {
     const email = req.query.email;
     const portfolioName = req.query.portfolioName;
+    const interval = req.query.interval;
     let startDate = new Date(req.query.startDate);
     let endDate = new Date(req.query.endDate);
 
@@ -543,7 +515,7 @@ router_portfolio.get(
       emailAddress: email,
       portfolio: portfolioName,
     });
-    getPortfolioHistory(portfolio, startDate, endDate)
+    getPortfolioHistory(portfolio, startDate, endDate, interval)
       .then((portfolioHistoricalValue) => {
         res.status(200).send(portfolioHistoricalValue);
       })
@@ -559,6 +531,7 @@ router_portfolio.get(
   "/portfolio/selectoneasset/timeperiod",
   async (req, res) => {
     const email = req.query.email;
+    const interval = req.query.interval;
     const portfolioName = req.query.portfolioName;
     const assetSymbol = req.query.assetSymbol.toUpperCase();
     let startDate = new Date(req.query.startDate);
@@ -570,7 +543,13 @@ router_portfolio.get(
       emailAddress: email,
       portfolio: portfolioName,
     });
-    getAssetInPortfolioValueHistory(portfolio, assetSymbol, startDate, endDate)
+    getAssetInPortfolioValueHistory(
+      portfolio,
+      assetSymbol,
+      startDate,
+      endDate,
+      interval
+    )
       .then((assetHistoricalValue) => {
         res.status(200).send(assetHistoricalValue);
       })
@@ -584,6 +563,7 @@ router_portfolio.get(
 //Get list of overall portfolio Values over a timeperiod
 router_portfolio.get("/portfolio/overallValue/timeperiod", async (req, res) => {
   const email = req.query.email;
+  const interval = req.query.interval;
   let startDate = new Date(req.query.startDate);
   let endDate = new Date(req.query.endDate);
 
@@ -591,7 +571,7 @@ router_portfolio.get("/portfolio/overallValue/timeperiod", async (req, res) => {
     `Getting overall portfolio value over timeperiod  by email...${email}`
   );
   let portfolio = await Portfolio.find({ emailAddress: email });
-  getPortfoliosHistory(portfolio, startDate, endDate)
+  getPortfoliosHistory(portfolio, startDate, endDate, interval)
     .then((portfolioHistoricalValue) => {
       res.status(200).send(portfolioHistoricalValue);
     })
