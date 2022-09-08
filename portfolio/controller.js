@@ -69,6 +69,7 @@ export async function getPortfolioHistory(
   try {
     for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
       let pfAssets = getPortfolioAssetsAtDate(portfolio[0], d);
+      if (Object.keys(pfAssets).length===0)continue;
       let dString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
         2,
         "0"
@@ -148,6 +149,7 @@ export async function getPortfoliosHistory(
             : (overallAssets[asset[0]] += asset[1]);
         }
       }
+      if (Object.keys(overallAssets).length===0)continue;
       for (let asset of Object.entries(overallAssets)) {
         dailyPfValue += await getAssetDailyValue(
           historical,
@@ -205,6 +207,7 @@ export async function getAssetInPortfolioValueHistory(
   try {
     for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
       let pfAssets = getPortfolioAssetsAtDate(portfolio[0], d);
+  
       let dString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
         2,
         "0"
