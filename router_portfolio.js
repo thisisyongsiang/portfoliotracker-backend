@@ -73,7 +73,26 @@ router_portfolio.delete("/portfolio/del", async (req, res) => {
     res.status(500).send(err);
   }
 });
+// Edit Portfolio for User by email and portfolio name
+router_portfolio.put("/portfolio/edit", async (req, res) => {
+  try {
+    const {email ,portfolioName,newName}= req.body;
+    console.log(`Edit Portfolio Name of ${portfolioName} to ${newName} for User ${email}`);
 
+    let updatePf = await Portfolio.findOneAndUpdate(
+      {emailAddress:email,portfolio:portfolioName},
+      {portfolio:newName},{new:true});
+    if (updatePf.portfolio===newName){
+      res.status(200).send(true);
+    }
+    else{
+      res.status(400).send(false);
+    }
+  } catch (err) {
+    console.error("Error waith portfolio/edit: ", err);
+    res.status(500).send(err);
+  }
+});
 // Get Portfolio Object of User by User email
 router_portfolio.get("/portfolio/select", async (req, res) => {
   const email = req.query.email;
