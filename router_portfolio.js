@@ -11,7 +11,7 @@ import {
   getAssetInPortfolioValueHistory,
   getAssetInPortfolioValue,
 } from "./portfolio/controller.js";
-import { GetHistoricalQuotes, GetQuote } from "./financeAPI/controller.js";
+import { GetDividendEvents, GetHistoricalQuotes, GetQuote, GetSplitEvents } from "./financeAPI/controller.js";
 import { router } from "./app.js";
 
 const router_portfolio = express.Router();
@@ -32,12 +32,12 @@ router_portfolio.get("/portfolio/all", async (req, res) => {
 router_portfolio.post("/portfolio/add", async (req, res) => {
   try {
     console.log("Adding New Portfolio.. req.body: ", req.body);
-
     const newPortfolio = new Portfolio({
       emailAddress: req.body.emailAddress,
       portfolio: req.body.portfolio,
       buy: req.body.buy,
       sell: req.body.sell,
+      cash:req.body.cash
     });
 
     let pf = await Portfolio.create(newPortfolio);
@@ -128,11 +128,41 @@ router_portfolio.put("/portfolio/transaction/update", async (req, res) => {
   const portfolio = req.body.portfolio;
   const transactionType = req.body.transactionType;
   const transaction = req.body.transaction;
-
   console.log(
     `Adding ${transactionType} transaction to portfolio ${portfolio} for user ${email}`
   );
 
+  if (transactionType==="buy"){
+  
+  let splits=await GetSplitEvents(transaction.ticker,transaction.date);
+  let dividends=await GetDividendEvents(transaction.ticker,transaction.date);
+  if (splits){
+    for(let s of splits){
+      let [num,denom]=s.stockSplits.split(':');
+      let ratio=+num/+denom;
+      transaction.quantity=ratio*(+transaction.quantity);
+    }
+  }
+  if(dividends){
+    console.log('dividends');
+    let divList=[];
+    for (let d of dividends){
+      let divObj={};
+      divObj.ticker=transaction.ticker;
+      divObj.type="dividend";
+      divObj.date=d.date;
+      divObj.value=d.dividends*(+transaction.quantity);
+      divObj.currency="usd";
+      divList.push(divObj);
+    }
+    // let pf =await Portfolio.find( { emailAddress: email, portfolio: portfolio });
+    // console.log(pf);
+    let pf = await Portfolio.updateOne(
+      { emailAddress: email, portfolio: portfolio },
+      { $push: { cash:{$each:divList} } }
+    );
+  }
+}
   Portfolio.updateOne(
     { emailAddress: email, portfolio: portfolio },
     { $push: { [transactionType]: transaction } },
@@ -299,7 +329,6 @@ router_portfolio.get("/portfolio/selectonevalue", async (req, res) => {
     });
 
     let pfVal = await getPortfolioValue(portfolio[0]);
-    console.log(pfVal);
     res.status(200).send({ value: pfVal });
   } catch (error) {
     console.error("error occurred at portfolio/selectonevalue " + error);

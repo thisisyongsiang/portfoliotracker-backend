@@ -26,3 +26,28 @@ export function SearchSymbol(searchTerm){
 
     return yahooFinance.search(searchTerm)
 }
+export async function GetDividendEvents(ticker,startPeriod){
+    let queryOptions={period1:startPeriod,
+    events:"dividend"};    
+   try{
+       
+       return await yahooFinance.historical(ticker,queryOptions,{validateResult:false});
+   }
+   catch(err){
+    //    console.log(err);
+       return null;
+   }
+}
+export async function GetSplitEvents(ticker,startPeriod){
+    console.log(ticker);
+    console.log(startPeriod);
+    let queryOptions={period1:startPeriod,
+    events:"split"};    
+   try{
+      return await yahooFinance.historical(ticker,queryOptions,{validateResult:false});
+   }
+   catch(err){
+    //    console.log(err);
+       return null;
+   }
+}

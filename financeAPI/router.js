@@ -1,5 +1,5 @@
 import express from 'express';
-import { GetHistoricalQuotes, GetQuote, SearchSymbol } from './controller.js';
+import { GetDividendEvents, GetHistoricalQuotes, GetQuote, GetSplitEvents, SearchSymbol } from './controller.js';
 
 const financeRouter=express.Router();
 
@@ -34,6 +34,28 @@ financeRouter.get('/financeapi/searchsymbols/:term',(req,res)=>{
 financeRouter.get('/financeapi/quote/:ticker',(req,res)=>{
 
     GetQuote(req.params.ticker)
+    .then(val=>{
+        res.status(200).send(val);
+    })
+    .catch(err=>{
+        res.status(500).send(`Some Error occured. Error: ${err}`);
+    })
+})
+financeRouter.get('/financeapi/dividend/:ticker',async (req,res)=>{
+    let startDate = req.query['startdate'];
+    
+    GetDividendEvents(req.params.ticker,startDate)
+    .then(val=>{
+        res.status(200).send(val);
+    })
+    .catch(err=>{
+        res.status(500).send(`Some Error occured. Error: ${err}`);
+    })
+})
+financeRouter.get('/financeapi/split/:ticker',(req,res)=>{
+    let startDate = req.query['startdate'];
+    
+    GetSplitEvents(req.params.ticker,startDate)
     .then(val=>{
         res.status(200).send(val);
     })
