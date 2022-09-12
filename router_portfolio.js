@@ -387,6 +387,51 @@ router_portfolio.get("/portfolio/selectone/assets", async (req, res) => {
   }
 });
 
+//Delete One Asset in One Portfolio
+router_portfolio.delete("/portfolio/selectone/assets/delete", async (req, res) => {
+  try {
+    const email = req.query.email;
+    const portfolioName = req.query.portfolioName;
+    console.log(req.query);
+    const assetSymbol = req.query.assetSymbol.toUpperCase();
+    console.log(
+      `Delete asset ${assetSymbol} in Portfolio:${portfolioName} by email...${email}`
+    );
+    let portfolio = await Portfolio.findOne({
+      emailAddress: email,
+      portfolio: portfolioName,
+    });
+    if(portfolio.buy){
+      for(let i =0;i<portfolio.buy.length;i++){
+        if(portfolio.buy[i].ticker===assetSymbol){
+          portfolio.buy.splice(i,1);
+          i-=1;
+        }
+      }
+    }
+    if(portfolio.sell){
+      for(let i =0;i<portfolio.sell.length;i++){
+        if(portfolio.sell[i].ticker===assetSymbol){
+          portfolio.sell.splice(i,1);
+          i-=1;
+        }
+      }
+    }
+    if(portfolio.cash){
+      for(let i =0;i<portfolio.cash.length;i++){
+        if(portfolio.cash[i].ticker===assetSymbol){
+          portfolio.cash.splice(i,1);
+          i-=1;
+        }
+      }
+    }
+    portfolio.save();
+    res.status(200).send("success");
+  } catch (error) {
+    console.error("error occurred at selectone/assets/delete " + error)
+    res.status(500).send("error occurred : " + error);
+  }
+});
 //Get List of transactions of one asset in one portfolio
 router_portfolio.get( "/portfolio/selectone/asset/transactions",
   async (req, res) => {
