@@ -10,6 +10,8 @@ import {
   getPortfoliosHistory,
   getAssetInPortfolioValueHistory,
   getAssetInPortfolioValue,
+  addVerifiedDividends,
+  reduceVerifiedDividends,
 } from "./portfolio/controller.js";
 import { GetDividendEvents, GetHistoricalQuotes, GetQuote, GetSplitEvents } from "./financeAPI/controller.js";
 import { router } from "./app.js";
@@ -131,52 +133,33 @@ router_portfolio.put("/portfolio/transaction/update", async (req, res) => {
   console.log(
     `Adding ${transactionType} transaction to portfolio ${portfolio} for user ${email}`
   );
-
-  if (transactionType==="buy"){
-  
-  let splits=await GetSplitEvents(transaction.ticker,transaction.date);
-  let dividends=await GetDividendEvents(transaction.ticker,transaction.date);
-  if (splits){
-    for(let s of splits){
-      let [num,denom]=s.stockSplits.split(':');
-      let ratio=+num/+denom;
-      transaction.quantity=ratio*(+transaction.quantity);
-    }
-  }
-  if(dividends){
-    console.log('dividends');
-    let divList=[];
-    for (let d of dividends){
-      let divObj={};
-      divObj.ticker=transaction.ticker;
-      divObj.type="dividend";
-      divObj.date=d.date;
-      divObj.value=d.dividends*(+transaction.quantity);
-      divObj.currency="usd";
-      divList.push(divObj);
-    }
-    // let pf =await Portfolio.find( { emailAddress: email, portfolio: portfolio });
-    // console.log(pf);
-    let pf = await Portfolio.updateOne(
-      { emailAddress: email, portfolio: portfolio },
-      { $push: { cash:{$each:divList} } }
-    );
-  }
-}
-  Portfolio.updateOne(
-    { emailAddress: email, portfolio: portfolio },
-    { $push: { [transactionType]: transaction } },
-    function (err, result) {
-      if (err) {
-        res.send(err);
-      } else {
-        console.log(
-          `Successfully Added ${transactionType} transaction to portfolio ${portfolio} for user ${email}`
-        );
-        res.send(result);
+  try {
+    let splits=await GetSplitEvents(transaction.ticker,transaction.date);
+    if (splits){
+      for(let s of splits){
+        let [num,denom]=s.stockSplits.split(':');
+        let ratio=+num/+denom;
+        transaction.quantity=ratio*(+transaction.quantity);
       }
     }
-  );
+    let pf=await Portfolio.findOne(
+      { emailAddress: email, portfolio: portfolio });
+    if (transactionType==="buy"){
+      await addVerifiedDividends(transaction.ticker,transaction.date,transaction.quantity,pf);
+    } 
+    else if(transactionType==="sell"){
+      await reduceVerifiedDividends(transaction.ticker,transaction.date,transaction.quantity,pf);
+    }
+    pf[transactionType].push(transaction);
+    pf.save();
+    console.log(
+      `Successfully Added ${transactionType} transaction to portfolio ${portfolio} for user ${email}`
+    );
+    res.status(200).send("success");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("failed, "+error);
+  }
 });
 
 // Delete transaction from existing portfolio
@@ -189,21 +172,32 @@ router_portfolio.put("/portfolio/transaction/del", async (req, res) => {
   console.log(
     `Deleting ${transactionType} transaction from portfolio ${portfolio} for user ${email}`
   );
-
-  Portfolio.updateOne(
-    { emailAddress: email, portfolio: portfolio },
-    { $pull: { [transactionType]: transaction } },
-    function (err, result) {
-      if (err) {
-        res.send(err);
-      } else {
-        console.log(
-          `Successfully Deleted ${transactionType} transaction from portfolio ${portfolio} for user ${email}`
-        );
-        res.send(result);
-      }
+  try {
+    let pf= await Portfolio.findOne(
+      { emailAddress: email, portfolio: portfolio });
+    if(transactionType==="sell"){
+      addVerifiedDividends(transaction.ticker,transaction.date,transaction.quantity,pf);
     }
-  );
+    else if(transactionType==="buy"){
+      reduceVerifiedDividends(transaction.ticker,transaction.date,transaction.quantity,pf);
+    }
+    pf.save();
+    let pfUpdate = await Portfolio.updateOne(
+      { emailAddress: email, portfolio: portfolio },
+      { $pull: { [transactionType]: {_id:transaction['_id']} } })
+    
+    if (transactionType==="sell"){
+      console.log(transaction.quantity);
+    }
+    console.log(
+      `Successfully Deleted ${transactionType} transaction from portfolio ${portfolio} for user ${email}`
+    );
+    res.status(200).send('success');
+  } catch (error) {
+    console.error('some error occurred at /portfolio/transaction/del'+error);
+    res.status(500).send(error);
+  }
+
 });
 
 // Get all BUY transactions from user
@@ -394,8 +388,7 @@ router_portfolio.get("/portfolio/selectone/assets", async (req, res) => {
 });
 
 //Get List of transactions of one asset in one portfolio
-router_portfolio.get(
-  "/portfolio/selectone/asset/transactions",
+router_portfolio.get( "/portfolio/selectone/asset/transactions",
   async (req, res) => {
     try {
       const email = req.query.email;
@@ -482,8 +475,7 @@ router_portfolio.get(
   }
 );
 
-router_portfolio.get(
-  "/portfolio/selectone/allassettablestats",
+router_portfolio.get(  "/portfolio/selectone/allassettablestats",
   async (req, res) => {
     try {
       const email = req.query.email;
@@ -620,8 +612,7 @@ router_portfolio.get(
 );
 
 //Get list of one user asset value over a timeperiod
-router_portfolio.get(
-  "/portfolio/selectoneasset/timeperiod",
+router_portfolio.get( "/portfolio/selectoneasset/timeperiod",
   async (req, res) => {
     const email = req.query.email;
     const interval = req.query.interval;
