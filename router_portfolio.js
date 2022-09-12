@@ -256,6 +256,31 @@ router_portfolio.get("/portfolio/transaction/sell", async (req, res) => {
   });
 });
 
+// Get all CASH transactions from user
+router_portfolio.get("/portfolio/transaction/cash", async (req, res) => {
+  const email = req.query.email;
+
+  console.log(`Getting all CASH transactions for user ${email}`);
+
+  Portfolio.find({ emailAddress: email }).exec((err, result) => {
+    if (err) {
+      console.log("Error: ", err);
+    } else {
+      console.log(
+        `Successfully retrieved all CASH transactions for user ${email}`
+      );
+
+      let transactions = [];
+      const func = (item, index, arr) => {
+        const cash = item["cash"];
+        transactions.push(...cash);
+      };
+      result.forEach(func);
+      res.send(transactions);
+    }
+  });
+});
+
 // Get user's portfolio names
 router_portfolio.get("/portfolio/select/name", async (req, res) => {
   const email = req.query.email;
