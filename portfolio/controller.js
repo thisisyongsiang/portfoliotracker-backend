@@ -36,6 +36,7 @@ export async function getAssetInPortfolioValue(portfolio, assetSymbol) {
 }
 
 export function getPortfolioAssetsAtDate(portfolio, date) {
+
   let assets = {};
   portfolio.buy.forEach((b) => {
     if (b.date > date) return;
@@ -207,15 +208,13 @@ export async function getAssetInPortfolioValueHistory(
   try {
     for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
       let pfAssets = getPortfolioAssetsAtDate(portfolio[0], d);
-  
+      if (Object.keys(pfAssets).length===0)continue;
+      if (!pfAssets[assetSymbol])continue;
       let dString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
         2,
         "0"
       )}-${String(d.getDate()).padStart(2, "0")}`;
       assetsPrevDayVal["date"] = d.toDateString();
-      if (!pfAssets[assetSymbol]) {
-        return null;
-      }
       let asset = [assetSymbol, pfAssets[assetSymbol]];
       let dailyValue = await getAssetDailyValue(
         historical,

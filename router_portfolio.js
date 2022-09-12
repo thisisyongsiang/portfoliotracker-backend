@@ -189,10 +189,9 @@ router_portfolio.put("/portfolio/transaction/del", async (req, res) => {
   console.log(
     `Deleting ${transactionType} transaction from portfolio ${portfolio} for user ${email}`
   );
-
   Portfolio.updateOne(
     { emailAddress: email, portfolio: portfolio },
-    { $pull: { [transactionType]: transaction } },
+    { $pull: { [transactionType]: {_id:transaction['_id']} } },
     function (err, result) {
       if (err) {
         res.send(err);
@@ -368,8 +367,7 @@ router_portfolio.get("/portfolio/selectone/assets", async (req, res) => {
   }
 });
 //Get List of transactions of one asset in one portfolio
-router_portfolio.get(
-  "/portfolio/selectone/asset/transactions",
+router_portfolio.get( "/portfolio/selectone/asset/transactions",
   async (req, res) => {
     try {
       const email = req.query.email;
@@ -384,6 +382,7 @@ router_portfolio.get(
       });
       let buyList = portfolio[0].buy.toObject();
       let sellList = portfolio[0].sell.toObject();
+      let cashList = portfolio[0].cash?.toObject();
       let output = { currQty: 0, transactions: [] };
       let currQty = 0;
       while (buyList.length > 0 || sellList.length > 0) {
@@ -444,8 +443,7 @@ router_portfolio.get(
   }
 );
 
-router_portfolio.get(
-  "/portfolio/selectone/allassettablestats",
+router_portfolio.get(  "/portfolio/selectone/allassettablestats",
   async (req, res) => {
     try {
       const email = req.query.email;
@@ -582,8 +580,7 @@ router_portfolio.get(
 );
 
 //Get list of one user asset value over a timeperiod
-router_portfolio.get(
-  "/portfolio/selectoneasset/timeperiod",
+router_portfolio.get( "/portfolio/selectoneasset/timeperiod",
   async (req, res) => {
     const email = req.query.email;
     const interval = req.query.interval;
