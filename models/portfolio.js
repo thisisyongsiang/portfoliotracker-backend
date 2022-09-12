@@ -1,7 +1,14 @@
 import mongoose from "mongoose";
 
 const Schema = mongoose.Schema;
-
+const cashSchema=new Schema({
+    ticker: String,
+    name: String,
+    type: String,
+    value: Number,
+    date: Date,
+    currency: String
+});
 const portfolioSchema = new Schema({
     emailAddress: {
         type: String,
@@ -35,14 +42,7 @@ const portfolioSchema = new Schema({
         fxRate: Number,
         frequency: String
     }],
-    cash: [{
-        ticker: String,
-        name: String,
-        type: String,
-        value: Number,
-        date: Date,
-        currency: String
-    }]
+    cash: [cashSchema]
 });
 
 const Portfolio = mongoose.model("portfolio", portfolioSchema);
