@@ -7,7 +7,9 @@ const cashSchema=new Schema({
     type: String,
     value: Number,
     date: Date,
-    currency: String
+    currency: String,
+    pricePerShare:Number,
+
 });
 const portfolioSchema = new Schema({
     emailAddress: {

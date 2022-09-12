@@ -1,4 +1,5 @@
-import { GetHistoricalQuotes, GetQuote } from "../financeAPI/controller.js";
+import { GetDividendEvents, GetHistoricalQuotes, GetQuote } from "../financeAPI/controller.js";
+import Portfolio from "../models/portfolio.js";
 
 export async function getPortfolioValue(portfolio) {
   let assets = {};
@@ -80,6 +81,9 @@ export async function getPortfolioHistory(
       assetsPrevDayVal["date"] = d.toDateString();
 
       for (let asset of Object.entries(pfAssets)) {
+        if (asset[1]===0){
+          continue;
+        }
         dailyPfValue += await getAssetDailyValue(
           historical,
           asset,
@@ -296,4 +300,49 @@ async function getAssetDailyValue(
     //considering some markets are active in some days while others are on holiday
   }
   return dailyPfValue;
+}
+
+export async function addVerifiedDividends(ticker,startDate,quantity,portfolio){
+  let dividends=await GetDividendEvents(ticker,startDate);
+  if(dividends){
+    for (let d of dividends){
+      let existingDiv = portfolio.cash.find(
+        x=>x.type==="dividend"
+        &&x.ticker===ticker
+        &&x.date.getTime()===d.date.getTime());
+      if(existingDiv){
+        existingDiv.value+=d.dividends*(+quantity);
+      }
+      else{
+        // console.log('add new dividend');
+        let divObj={};
+        divObj.ticker=ticker;
+        divObj.type="dividend";
+        divObj.date=d.date;
+        divObj.value=d.dividends*(+quantity);
+        divObj.currency="usd";
+        divObj.pricePerShare=d.dividends;
+        portfolio.cash.push(divObj);
+      }
+    }
+  }
+}
+export async function reduceVerifiedDividends(ticker,startDate,quantity,portfolio){
+      //if sell, find for all dividend transactions 
+    //and update all dividends post sell transaction
+  if(portfolio.cash){
+    if (portfolio.cash.length>0){
+      for(let i=0;i<portfolio.cash.length;i++){
+        if (portfolio.cash[i].type!=="dividend")continue;
+        if(portfolio.cash[i].ticker!==ticker)continue;
+        if(portfolio.cash[i].date>new Date(startDate)){
+          portfolio.cash[i].value-=portfolio.cash[i].pricePerShare*(+quantity);
+          if (portfolio.cash[i].value<=0){
+            portfolio.cash.splice(i,1);
+            i-=1;
+          }
+        }
+      }
+    }
+  }
 }
