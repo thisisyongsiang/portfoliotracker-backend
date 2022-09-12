@@ -250,6 +250,31 @@ router_portfolio.get("/portfolio/transaction/sell", async (req, res) => {
   });
 });
 
+// Get all CASH transactions from user
+router_portfolio.get("/portfolio/transaction/cash", async (req, res) => {
+  const email = req.query.email;
+
+  console.log(`Getting all CASH transactions for user ${email}`);
+
+  Portfolio.find({ emailAddress: email }).exec((err, result) => {
+    if (err) {
+      console.log("Error: ", err);
+    } else {
+      console.log(
+        `Successfully retrieved all CASH transactions for user ${email}`
+      );
+
+      let transactions = [];
+      const func = (item, index, arr) => {
+        const cash = item["cash"];
+        transactions.push(...cash);
+      };
+      result.forEach(func);
+      res.send(transactions);
+    }
+  });
+});
+
 // Get user's portfolio names
 router_portfolio.get("/portfolio/select/name", async (req, res) => {
   const email = req.query.email;
@@ -424,8 +449,9 @@ router_portfolio.get( "/portfolio/selectone/asset/transactions",
       let buyList = portfolio[0].buy.toObject();
       let sellList = portfolio[0].sell.toObject();
       let cashList = portfolio[0].cash?.toObject();
-      let output = { currQty: 0, transactions: [] };
+      let output = { currQty: 0, currCash: 0, transactions: [] };
       let currQty = 0;
+      let totalCash = 0;
       while (buyList.length > 0 || sellList.length > 0) {
         let next = false;
         if (buyList.length > 0) {
@@ -442,6 +468,7 @@ router_portfolio.get( "/portfolio/selectone/asset/transactions",
         }
 
         if (next) continue;
+
         if (buyList.length > 0 && sellList.length === 0) {
           let buy = buyList.shift();
           currQty += buy.quantity;
@@ -475,7 +502,16 @@ router_portfolio.get( "/portfolio/selectone/asset/transactions",
         }
       }
 
+      cashList.forEach((item) => {
+        if (item.ticker === assetSymbol) {
+          item["type"] = "cash";
+          output.transactions.push(item);
+          totalCash += item.value;
+        }
+      })
+
       output.currQty = currQty;
+      output.currCash = totalCash;
       res.status(200).send(output);
     } catch (error) {
       console.error("error occurred at selectone/asset/transactions "+ error)
