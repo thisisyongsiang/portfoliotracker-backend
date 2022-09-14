@@ -20,11 +20,21 @@ export function GetHistoricalQuotes(ticker,startPeriod,endPeriod,interval){
 
 }
 export function GetQuote(ticker){
+    try {
+        
     return yahooFinance.quote(ticker);
+    } catch (error) {
+        console.log(err);
+        return null; 
+    }
 }
 export function SearchSymbol(searchTerm){
-
+    try {
     return yahooFinance.search(searchTerm)
+    } catch (error) {
+        console.log(err);
+        return null; 
+    }
 }
 export async function GetDividendEvents(ticker,startPeriod){
     let queryOptions={period1:startPeriod,
