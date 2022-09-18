@@ -7,6 +7,7 @@ import * as apps from './app.js';
 import {router_user} from './router_user.js';
 import {router_portfolio} from './router_portfolio.js';
 import {financeRouter}from './financeAPI/router.js'
+import { requireAuth } from './requireAuth.js';
 
 dotenv.config();
 

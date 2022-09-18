@@ -3,8 +3,10 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import mongoose from 'mongoose';
 import User from './models/user.js';
+import { requireAuth } from './requireAuth.js';
 
 const router_user = express.Router();
+router_user.use(requireAuth);
 
 router_user.get("/user/all", async (req, res) => {
     console.log("Getting all User details...");
@@ -42,7 +44,6 @@ try {
     lastName: req.body.lastName,
     emailAddress: req.body.emailAddress,
     });
-    console.log(newUser);
 
     let existingUser = await User.find({emailAddress:newUser.emailAddress}).exec();
     if(existingUser.length===0){
