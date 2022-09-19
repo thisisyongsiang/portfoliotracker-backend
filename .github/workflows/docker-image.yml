@@ -34,7 +34,11 @@ jobs:
               MONGO_DB_ARG
               MONGO_USER_ARG
               MONGO_PASSWORD_ARG
+              AUTH0_AUDIENCE_ARG
+              AUTH0_DOMAIN_ARG
           env:
             MONGO_DB_ARG: ${{ secrets.MONGO_DB }}
             MONGO_USER_ARG: ${{ secrets.MONGO_USER }}
             MONGO_PASSWORD_ARG: ${{ secrets.MONGO_PASSWORD }}
+            AUTH0_AUDIENCE_ARG: ${{ secrets.AUTH0_AUDIENCE}}
+            AUTH0_DOMAIN_ARG: ${{ secrets.AUTH0_DOMAIN }}
